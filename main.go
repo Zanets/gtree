@@ -5,7 +5,14 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"regexp"
+	"os/user"
 )
+
+// global variables
+var regexp_ignore = regexp.MustCompile(".*ignore")
+var current_user, _ = user.Current()
+ 
 
 type NodeType int
 
@@ -22,9 +29,27 @@ type Node struct {
 	Level int
 }
 
+func getIgnoreRule(path string) []string {
+	var irs []string
+	for _, file := range files {
+		if regexp_ignore.MatchString(file.Name()) {
+		} 
+	}
+	return irs
+}
 
-func isGit(path string) bool {
-	return false	
+
+func getIgnoreRules(path string) []string { 
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	var irs []string
+	irs = irs.append()
+
+	
+	return irs
 }
 
 func drawBranch(name string, level int) {
@@ -35,12 +60,13 @@ func drawBranch(name string, level int) {
 	fmt.Println("|-" + name)
 }
 
-func walk(path string, level int, nodes []Node) []Node {
+func walk(path string, level int) []Node {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	var nodes []Node
 	for _, file := range files {
 		name := file.Name()
 		if name == ".git" {
@@ -48,7 +74,7 @@ func walk(path string, level int, nodes []Node) []Node {
 		}
 		if file.IsDir() {
 			nodes = append(nodes, Node{file.Name(), path, Directory, level})
-			nodes = walk(path + "/" + file.Name(), level+1, nodes)
+			nodes = append(nodes, walk(path + "/" + file.Name(), level+1)...)
 		} else {
 			nodes = append(nodes, Node{file.Name(), path, File, level})
 		}
@@ -58,13 +84,15 @@ func walk(path string, level int, nodes []Node) []Node {
 
 func main() {
 	target, err := filepath.Abs("./")
-	var nodes []Node
-	if err == nil {
-		nodes = walk(target, 0, nodes)
-		for _,node := range(nodes) {
-			fmt.Println(node)
-		}
-	} else {
+	if err != nil {
 		log.Fatal(err)
+	}
+
+
+	getIgnoreRules(target)
+	nodes := walk(target, 0)
+	
+	for _,node := range nodes {
+		fmt.Println(node)
 	}
 }
