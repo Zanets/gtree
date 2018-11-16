@@ -28,27 +28,27 @@ func isGit(path string) bool {
 }
 
 func drawBranch(name string, level int) {
+	
 	for i := 0; i < level; i++ {
 		fmt.Print("  ")
 	}
 	fmt.Println("|-" + name)
 }
 
-func walk(path string, level int) []Node {
+func walk(path string, level int, nodes []Node) []Node {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var nodes []Node
 	for _, file := range files {
-		// drawBranch(file.Name(), level)
 		name := file.Name()
 		if name == ".git" {
 			continue
 		}
 		if file.IsDir() {
-			nodes = append(nodes, walk(path + "/" + file.Name(), level+1)...)
+			nodes = append(nodes, Node{file.Name(), path, Directory, level})
+			nodes = walk(path + "/" + file.Name(), level+1, nodes)
 		} else {
 			nodes = append(nodes, Node{file.Name(), path, File, level})
 		}
@@ -58,10 +58,12 @@ func walk(path string, level int) []Node {
 
 func main() {
 	target, err := filepath.Abs("./")
-	fmt.Println(target)
+	var nodes []Node
 	if err == nil {
-		nodes := walk(target, 1)
-		fmt.Println(nodes)
+		nodes = walk(target, 0, nodes)
+		for _,node := range(nodes) {
+			fmt.Println(node)
+		}
 	} else {
 		log.Fatal(err)
 	}
