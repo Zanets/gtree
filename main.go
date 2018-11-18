@@ -12,7 +12,7 @@ import (
 // global variables
 var regexp_ignore = regexp.MustCompile(".*ignore")
 var current_user, _ = user.Current()
- 
+
 
 type NodeType int
 
@@ -29,8 +29,13 @@ type Node struct {
 	Level int
 }
 
+// used to get rules from single directory
 func getIgnoreRule(path string) []string {
 	var irs []string
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		log.Fatal(err)
+	}
 	for _, file := range files {
 		if regexp_ignore.MatchString(file.Name()) {
 		} 
@@ -39,21 +44,18 @@ func getIgnoreRule(path string) []string {
 }
 
 
+// entry to get ignore rules
 func getIgnoreRules(path string) []string { 
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	
 	var irs []string
-	irs = irs.append()
+	// get $HOME ignore
+	fmt.Println(current_user)
+	// get ignore files from travelsal
 
-	
 	return irs
 }
 
 func drawBranch(name string, level int) {
-	
+
 	for i := 0; i < level; i++ {
 		fmt.Print("  ")
 	}
@@ -91,7 +93,7 @@ func main() {
 
 	getIgnoreRules(target)
 	nodes := walk(target, 0)
-	
+
 	for _,node := range nodes {
 		fmt.Println(node)
 	}
