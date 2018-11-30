@@ -1,11 +1,14 @@
-default: compile
+default: build
 
 prepare:
-	mkdir -p build_lib
+	mkdir build_lib
 
-prepare_lib: prepare
-	cd build_lib && \
-	../scripts/install_libgit2.sh
+lib: prepare
+	cd build_lib; ../scripts/install_libgit2.sh
 
-compile:
+build: lib
 	PKG_CONFIG_PATH="${GOPATH}/lib/pkgconfig:${PKG_CONFIG_PATH}" go build
+
+clean:
+	rm -r build_lib
+	rm gtree
