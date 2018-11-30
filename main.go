@@ -124,7 +124,7 @@ func main() {
 	}
 
 	// TODO use flag to enable or disable ignore rules
-	getIgnoreRules(target)
+	//getIgnoreRules(target)
 
 	nodes := walk(target, 0)
 

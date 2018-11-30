@@ -1,14 +1,22 @@
 package main
 
 /*
-#cgo pkg-config: libgit2
+#cgo pkg-config: libgit2 zlib
 #include "git2.h"
 */
 import "C"
-import "fmt"
+import (
+	"unsafe"
+)
 
 type Repository struct {
 	ptr *C.git_repository
+}
+
+func newRepositoryFromC(ptr *C.git_repository) *Repository {
+	repo := &Repository{ptr: ptr}
+
+	return repo
 }
 
 func OpenRepository(path string) (*Repository, error) {
@@ -18,7 +26,7 @@ func OpenRepository(path string) (*Repository, error) {
 	var ptr *C.git_repository
 	ret := C.git_repository_open(&ptr, cpath)
 	if ret < 0 {
-		return nil, MakeGitError(ret)
+		//return nil, MakeGitError(ret)
 
 	}
 
@@ -33,7 +41,7 @@ func (v *Repository) IsPathIgnored(path string) (bool, error) {
 
 	ret := C.git_ignore_path_is_ignored(&ignored, v.ptr, cpath)
 	if ret < 0 {
-		return false, MakeGitError(ret)
+		//return false, MakeGitError(ret)
 	}
 	return ignored == 1, nil
 }
