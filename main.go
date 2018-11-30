@@ -7,11 +7,15 @@ import (
 	"path/filepath"
 	"regexp"
 	"os/user"
+	"os"
+	"bufio"
+	"strings"
 )
 
 // global variables
-var regexp_ignore = regexp.MustCompile(".*ignore")
+var regexp_ignore = regexp.MustCompile("ignore$")
 var current_user, _ = user.Current()
+var irs []*regexp.Regexp 
 
 
 type NodeType int
@@ -29,29 +33,50 @@ type Node struct {
 	Level int
 }
 
-// used to get rules from single directory
-func getIgnoreRule(path string) []string {
-	var irs []string
+// get rules from single directory
+func getIgnoreRule(path string) {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		log.Fatal(err)
 	}
 	for _, file := range files {
-		if regexp_ignore.MatchString(file.Name()) {
+		if !file.IsDir() && regexp_ignore.MatchString(file.Name()) {
+			fp, err := os.Open(path + "/" + file.Name())
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer fp.Close()
+
+			scanner := bufio.NewScanner(fp)
+			for scanner.Scan() {
+				line := string(strings.TrimSpace(scanner.Text()))
+				
+				// ignore empty line and comment
+				if line == "" || strings.HasPrefix(line, "#") {
+					continue
+				}
+				
+				// TODO: error check
+				reg_ignore := regexp.MustCompile(line)
+
+				irs = append(irs, reg_ignore)
+			}
+
+			if err := scanner.Err(); err != nil {
+				log.Fatal(err)
+			}
 		} 
 	}
-	return irs
 }
 
 
 // entry to get ignore rules
-func getIgnoreRules(path string) []string { 
-	var irs []string
+func getIgnoreRules(path string) { 
+	
 	// get $HOME ignore
-	fmt.Println(current_user)
-	// get ignore files from travelsal
+	getIgnoreRule(current_user.HomeDir)
 
-	return irs
+	// get ignore files from travelsal
 }
 
 func drawBranch(name string, level int) {
@@ -71,9 +96,17 @@ func walk(path string, level int) []Node {
 	var nodes []Node
 	for _, file := range files {
 		name := file.Name()
+		
 		if name == ".git" {
 			continue
 		}
+		
+		for _, ir := range irs {
+			if ir.MatchString(name) {
+				continue
+			}
+		} 
+
 		if file.IsDir() {
 			nodes = append(nodes, Node{file.Name(), path, Directory, level})
 			nodes = append(nodes, walk(path + "/" + file.Name(), level+1)...)
@@ -90,8 +123,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-
+	// TODO use flag to enable or disable ignore rules
 	getIgnoreRules(target)
+
 	nodes := walk(target, 0)
 
 	for _,node := range nodes {
