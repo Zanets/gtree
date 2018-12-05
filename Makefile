@@ -1,12 +1,14 @@
 default: build
 
+all: prepre lib build
+
 prepare:
 	mkdir build_lib
 
-lib: prepare
+lib: 
 	cd build_lib; ../scripts/install_libgit2.sh
 
-build: lib
+build:
 	PKG_CONFIG_PATH="${GOPATH}/lib/pkgconfig:${PKG_CONFIG_PATH}" go build
 
 clean:

@@ -13,24 +13,27 @@ type Repository struct {
 	ptr *C.git_repository
 }
 
+func InitGit() {
+	C.git_libgit2_init()
+}
+
 func newRepositoryFromC(ptr *C.git_repository) *Repository {
 	repo := &Repository{ptr: ptr}
 
 	return repo
 }
 
-func OpenRepository(path string) (*Repository, error) {
+func OpenRepository(path string) (*Repository) {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
 
 	var ptr *C.git_repository
 	ret := C.git_repository_open(&ptr, cpath)
 	if ret < 0 {
-		//return nil, MakeGitError(ret)
-
+		return nil
 	}
 
-	return newRepositoryFromC(ptr), nil
+	return newRepositoryFromC(ptr)
 }
 
 func (v *Repository) IsPathIgnored(path string) (bool, error) {

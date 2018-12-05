@@ -16,6 +16,7 @@ import (
 var regexp_ignore = regexp.MustCompile("ignore$")
 var current_user, _ = user.Current()
 var irs []*regexp.Regexp 
+var repo *Repository = nil
 
 
 type NodeType int
@@ -117,11 +118,24 @@ func walk(path string, level int) []Node {
 	return nodes
 }
 
+func initRepo(path string) int {
+	repo = OpenRepository(path)
+	if repo == nil {
+		return -1
+	}
+	return 0
+}
+
 func main() {
 	target, err := filepath.Abs("./")
 	if err != nil {
 		log.Fatal(err)
 	}
+	InitGit()
+	if initRepo(target) < 0 {
+		os.Exit(1)
+	}
+	
 
 	// TODO use flag to enable or disable ignore rules
 	//getIgnoreRules(target)
