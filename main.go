@@ -102,11 +102,17 @@ func walk(path string, level int) []Node {
 			continue
 		}
 		
+		isIgnored, _ := repo.IsPathIgnored(path + "/" + file.Name())
+		if isIgnored {
+			continue
+		}
+		/*
 		for _, ir := range irs {
 			if ir.MatchString(name) {
 				continue
 			}
 		} 
+		*/
 
 		if file.IsDir() {
 			nodes = append(nodes, Node{file.Name(), path, Directory, level})
@@ -127,12 +133,13 @@ func initRepo(path string) int {
 }
 
 func main() {
-	target, err := filepath.Abs("./")
+	target, err := filepath.Abs(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
 	InitGit()
 	if initRepo(target) < 0 {
+		fmt.Println("Init repo fail.")
 		os.Exit(1)
 	}
 	
