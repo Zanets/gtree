@@ -28,6 +28,7 @@ const (
 )
 
 type Node struct {
+	Order int // order number in folder
 	Name string 
 	Path string
 	Type NodeType
@@ -89,6 +90,7 @@ func drawBranch(name string, level int) {
 }
 
 func walk(path string, level int) []Node {
+	i := 0
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
 		log.Fatal(err)
@@ -96,6 +98,7 @@ func walk(path string, level int) []Node {
 
 	var nodes []Node
 	for _, file := range files {
+		i++
 		name := file.Name()
 		
 		if name == ".git" {
@@ -115,10 +118,10 @@ func walk(path string, level int) []Node {
 		*/
 
 		if file.IsDir() {
-			nodes = append(nodes, Node{file.Name(), path, Directory, level})
+			nodes = append(nodes, Node{i, file.Name(), path, Directory, level})
 			nodes = append(nodes, walk(path + "/" + file.Name(), level+1)...)
 		} else {
-			nodes = append(nodes, Node{file.Name(), path, File, level})
+			nodes = append(nodes, Node{i, file.Name(), path, File, level})
 		}
 	}
 	return nodes
@@ -149,7 +152,14 @@ func main() {
 
 	nodes := walk(target, 0)
 
+	fmt.Println(target)
 	for _,node := range nodes {
-		fmt.Println(node)
+		for i := 0 ; i<node.Level; i++ {
+			fmt.Print(" ")
+		}
+
+		fmt.Print("├─ ")
+		
+		fmt.Println(node.Name)
 	}
 }
