@@ -12,5 +12,8 @@ build:
 	PKG_CONFIG_PATH="${GOPATH}/lib/pkgconfig:${PKG_CONFIG_PATH}" go build
 
 clean:
+	go install
+
+clean:
 	rm -r build_lib
 	rm gtree
