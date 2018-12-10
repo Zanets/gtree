@@ -11,6 +11,9 @@ lib:
 build:
 	PKG_CONFIG_PATH="${GOPATH}/lib/pkgconfig:${PKG_CONFIG_PATH}" go build
 
+install:
+	go install
+
 clean:
 	go install
 
