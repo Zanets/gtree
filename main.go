@@ -5,161 +5,102 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
-	"regexp"
-	"os/user"
+	"path"
 	"os"
-	"bufio"
-	"strings"
 )
-
-// global variables
-var regexp_ignore = regexp.MustCompile("ignore$")
-var current_user, _ = user.Current()
-var irs []*regexp.Regexp 
-var repo *Repository = nil
 
 
 type NodeType int
-
-
 const (
-	File NodeType = 0
-	Directory NodeType = 1
+	NTF NodeType = 0
+	NTD NodeType = 1
 )
 
 type Node struct {
 	Order int // order number in folder
-	Name string 
-	Path string
+	Name string // file name
+	Path string // parent folder path
 	Type NodeType
 	Level int
+	SubFiles []*Node
 }
 
-// get rules from single directory
-func getIgnoreRule(path string) {
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		log.Fatal(err)
+var Repo Repository
+var Root Node
+
+func scanNode(node* Node) {
+	if node.Type != NTD {
+		return 
 	}
-	for _, file := range files {
-		if !file.IsDir() && regexp_ignore.MatchString(file.Name()) {
-			fp, err := os.Open(path + "/" + file.Name())
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer fp.Close()
-
-			scanner := bufio.NewScanner(fp)
-			for scanner.Scan() {
-				line := string(strings.TrimSpace(scanner.Text()))
-				
-				// ignore empty line and comment
-				if line == "" || strings.HasPrefix(line, "#") {
-					continue
-				}
-				
-				// TODO: error check
-				reg_ignore := regexp.MustCompile(line)
-
-				irs = append(irs, reg_ignore)
-			}
-
-			if err := scanner.Err(); err != nil {
-				log.Fatal(err)
-			}
-		} 
-	}
-}
-
-
-// entry to get ignore rules
-func getIgnoreRules(path string) { 
-	
-	// get $HOME ignore
-	getIgnoreRule(current_user.HomeDir)
-
-	// get ignore files from travelsal
-}
-
-func drawBranch(name string, level int) {
-
-	for i := 0; i < level; i++ {
-		fmt.Print("  ")
-	}
-	fmt.Println("|-" + name)
-}
-
-func walk(path string, level int) []Node {
-	i := 0
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var nodes []Node
-	for _, file := range files {
-		i++
-		name := file.Name()
 		
-		if name == ".git" {
+	curPath := node.Path + "/" + node.Name
+
+	subfiles, err := ioutil.ReadDir(curPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	for i, subfile := range subfiles {
+		
+		if subfile.Name() == ".git" {
 			continue
 		}
 		
-		isIgnored, _ := repo.IsPathIgnored(path + "/" + file.Name())
+		isIgnored, _ := Repo.IsIgnored(curPath + "/" + subfile.Name())
 		if isIgnored {
 			continue
 		}
-		/*
-		for _, ir := range irs {
-			if ir.MatchString(name) {
-				continue
-			}
-		} 
-		*/
 
-		if file.IsDir() {
-			nodes = append(nodes, Node{i, file.Name(), path, Directory, level})
-			nodes = append(nodes, walk(path + "/" + file.Name(), level+1)...)
-		} else {
-			nodes = append(nodes, Node{i, file.Name(), path, File, level})
+		subnode := Node {
+			Order: i, 
+			Name: subfile.Name(), 
+			Path: curPath, 
+			Type: NTF,
+			Level: node.Level+1 }
+		
+		if subfile.IsDir() {
+			subnode.Type = NTD
+			scanNode(&subnode)
 		}
+		 
+		node.SubFiles = append(node.SubFiles, &subnode)
 	}
-	return nodes
+
 }
 
-func initRepo(path string) int {
-	repo = OpenRepository(path)
-	if repo == nil {
-		return -1
+func printNode(node* Node) {
+	for _, child := range node.SubFiles {
+		for i := 0 ; i < child.Level; i++ {
+			fmt.Print("  ")
+		}
+
+		fmt.Println(child.Name)
+		printNode(child)
 	}
-	return 0
 }
 
 func main() {
-	target, err := filepath.Abs(os.Args[1])
+	repoPath, err := filepath.Abs(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
-	InitGit()
-	if initRepo(target) < 0 {
-		fmt.Println("Init repo fail.")
-		os.Exit(1)
+
+	Repo = Repository{}
+	if Repo.Open(repoPath) < 0 {
+		fmt.Println("Open repo fail")
+		return
 	}
+
+	Root = Node{
+		Order: 0, 
+		Name: path.Base(repoPath), 
+		Path: path.Dir(repoPath), 
+		Type: NTD, 
+		Level: 0}
 	
+	scanNode(&Root)
+	printNode(&Root)
 
-	// TODO use flag to enable or disable ignore rules
-	//getIgnoreRules(target)
 
-	nodes := walk(target, 0)
-
-	fmt.Println(target)
-	for _,node := range nodes {
-		for i := 0 ; i<node.Level; i++ {
-			fmt.Print(" ")
-		}
-
-		fmt.Print("├─ ")
-		
-		fmt.Println(node.Name)
-	}
+	Repo.Close()
 }
