@@ -22,7 +22,6 @@ type Node struct {
 	Path string // parent folder path
 	Type NodeType
 	Level int
-	SubFiles []*Node
 }
 
 var Repo Repository
@@ -62,21 +61,13 @@ func scanNode(node* Node) {
 			subnode.Type = NTD
 			scanNode(&subnode)
 		}
-		 
-		node.SubFiles = append(node.SubFiles, &subnode)
-	}
-
-}
-
-func printNode(node* Node) {
-	for _, child := range node.SubFiles {
-		for i := 0 ; i < child.Level; i++ {
+		for i := 0 ; i < subnode.Level; i++ {
 			fmt.Print("  ")
 		}
 
-		fmt.Println(child.Name)
-		printNode(child)
+		fmt.Println(subnode.Name)
 	}
+
 }
 
 func main() {
@@ -99,8 +90,6 @@ func main() {
 		Level: 0}
 	
 	scanNode(&Root)
-	printNode(&Root)
-
 
 	Repo.Close()
 }
